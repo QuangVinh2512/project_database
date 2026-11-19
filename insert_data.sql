@@ -1,13 +1,7 @@
--- =====================================================================================
--- HE THONG DAT VE MAY BAY & GIU CHO (AIRLINE BOOKING & RESERVATION SYSTEM)
--- PHAN CUA THANH VIEN 3: DU LIEU MAU (DATA INSERTION) & TU DONG HOA (AUTOMATION)
--- =====================================================================================
-
 USE AirlineBooking;
 GO
 
-PRINT '>>> DANG DON DEP DU LIEU CU (CLEANUP)...';
--- Xoa du lieu theo thu tu khoa ngoai de co the chay lai nhieu lan an toan
+-- xoa du lieu cu theo thu tu khoa ngoai de chay lai khong bi loi
 DELETE FROM TICKET;
 DELETE FROM PAYMENT;
 DELETE FROM SEAT_RESERVATION;
@@ -22,7 +16,7 @@ DELETE FROM SEAT_CLASS;
 DELETE FROM AIRCRAFT;
 DELETE FROM AIRPORT;
 
--- Reset IDENTITY ve 0
+-- reset lai cac cot identity ve 0
 DBCC CHECKIDENT ('AIRCRAFT', RESEED, 0);
 DBCC CHECKIDENT ('SEAT_CLASS', RESEED, 0);
 DBCC CHECKIDENT ('CUSTOMER', RESEED, 0);
@@ -36,11 +30,7 @@ DBCC CHECKIDENT ('PAYMENT', RESEED, 0);
 DBCC CHECKIDENT ('TICKET', RESEED, 0);
 GO
 
--- =====================================================================================
-PRINT '>>> BUOC 1: INSERT DU LIEU HA TANG (AIRPORT, SEAT_CLASS, AIRCRAFT, ROUTE)';
--- =====================================================================================
-
--- 1. SAN BAY (AIRPORT)
+-- 1. them san bay
 INSERT INTO AIRPORT (airport_code, airport_name, city, country) VALUES
 ('HAN', 'San bay Quoc te Noi Bai', 'Ha Noi', 'Viet Nam'),
 ('SGN', 'San bay Quoc te Tan Son Nhat', 'TP. Ho Chi Minh', 'Viet Nam'),
@@ -51,32 +41,31 @@ INSERT INTO AIRPORT (airport_code, airport_name, city, country) VALUES
 ('SIN', 'San bay Quoc te Changi', 'Singapore', 'Singapore'),
 ('NRT', 'San bay Quoc te Narita', 'Tokyo', 'Nhat Ban');
 
--- 2. HANG GHE (SEAT_CLASS) - Do dai <= 30 ky tu
+-- 2. them hang ghe
 INSERT INTO SEAT_CLASS (class_name) VALUES
 ('Thuong gia (Business)'),
 ('Pho thong (Economy)');
 
--- 3. MAY BAY (AIRCRAFT)
+-- 3. them may bay
 INSERT INTO AIRCRAFT (aircraft_model, total_seats) VALUES
 ('Airbus A321-200', 180),
 ('Boeing 787-9 Dreamliner', 294),
 ('Airbus A350-900', 305);
 
--- 4. TUYEN BAY (ROUTE)
+-- 4. them cac tuyen bay
 INSERT INTO ROUTE (departure_airport_code, arrival_airport_code, distance_km) VALUES
-('HAN', 'SGN', 1160), -- route_id = 1
-('SGN', 'HAN', 1160), -- route_id = 2
-('HAN', 'DAD', 630),  -- route_id = 3
-('DAD', 'HAN', 630),  -- route_id = 4
-('SGN', 'PQC', 300),  -- route_id = 5
-('PQC', 'SGN', 300),  -- route_id = 6
-('HAN', 'BKK', 990),  -- route_id = 7
-('SGN', 'SIN', 1090); -- route_id = 8
+('HAN', 'SGN', 1160),
+('SGN', 'HAN', 1160),
+('HAN', 'DAD', 630),
+('DAD', 'HAN', 630),
+('SGN', 'PQC', 300),
+('PQC', 'SGN', 300),
+('HAN', 'BKK', 990),
+('SGN', 'SIN', 1090);
 GO
 
--- =====================================================================================
-PRINT '>>> BUOC 2: TU DONG SINH 180 GHE CHO TAU BAY A321 (AIRCRAFT_SEAT)';
--- =====================================================================================
+-- 5. tao 180 ghe vat ly cho may bay A321 (id = 1)
+-- 4 hang dau la thuong gia, con lai la pho thong, chia 2 day trai phai
 DECLARE @aircraft_id INT = 1;
 DECLARE @class_business INT, @class_economy INT;
 SELECT @class_business = class_id FROM SEAT_CLASS WHERE class_name LIKE '%Business%';
@@ -98,26 +87,25 @@ ColsCTE AS (
 INSERT INTO AIRCRAFT_SEAT (aircraft_id, class_id, row_number, column_code, block_code, seat_number, seat_position)
 SELECT 
     @aircraft_id,
-    CASE WHEN r.row_no <= 4 THEN @class_business ELSE @class_economy END AS class_id,
-    r.row_no AS row_number,
-    c.col AS column_code,
-    c.blk AS block_code,
-    CAST(r.row_no AS VARCHAR(5)) + c.col AS seat_number,
-    c.pos AS seat_position
+    CASE WHEN r.row_no <= 4 THEN @class_business ELSE @class_economy END,
+    r.row_no,
+    c.col,
+    c.blk,
+    CAST(r.row_no AS VARCHAR(5)) + c.col,
+    c.pos
 FROM RowsCTE r
 CROSS JOIN ColsCTE c
 ORDER BY r.row_no, c.col;
 GO
 
--- =====================================================================================
-PRINT '>>> BUOC 3: TAO CHUYEN BAY (FLIGHT) & CAU HINH GIA VE (FLIGHT_CLASS_FARE)';
--- =====================================================================================
+-- 6. them chuyen bay
 INSERT INTO FLIGHT (flight_code, route_id, aircraft_id, departure_time, arrival_time, status) VALUES
 ('VN123', 1, 1, DATEADD(HOUR, 4, GETDATE()), DATEADD(HOUR, 6, GETDATE()), 'Scheduled'),
 ('VN124', 2, 1, DATEADD(DAY, 1, DATEADD(HOUR, 8, CAST(CAST(GETDATE() AS DATE) AS DATETIME))), DATEADD(DAY, 1, DATEADD(HOUR, 10, CAST(CAST(GETDATE() AS DATE) AS DATETIME))), 'Scheduled'),
 ('VJ456', 3, 1, DATEADD(HOUR, 2, GETDATE()), DATEADD(HOUR, 3, GETDATE()), 'Scheduled'),
 ('QH789', 5, 1, DATEADD(DAY, 1, DATEADD(HOUR, 14, CAST(CAST(GETDATE() AS DATE) AS DATETIME))), DATEADD(DAY, 1, DATEADD(HOUR, 15, CAST(CAST(GETDATE() AS DATE) AS DATETIME))), 'Scheduled');
 
+-- gia ve theo chuyen va hang ghe
 DECLARE @c_bus INT, @c_eco INT;
 SELECT @c_bus = class_id FROM SEAT_CLASS WHERE class_name LIKE '%Business%';
 SELECT @c_eco = class_id FROM SEAT_CLASS WHERE class_name LIKE '%Economy%';
@@ -133,9 +121,7 @@ INSERT INTO FLIGHT_CLASS_FARE (flight_id, class_id, base_price, currency) VALUES
 (4, @c_eco, 950000.00, 'VND');
 GO
 
--- =====================================================================================
-PRINT '>>> BUOC 4: NHAN BAN GHE MO BAN CHO CHUYEN BAY (FLIGHT_SEAT)';
--- =====================================================================================
+-- 7. tao danh sach ghe mo ban cho tung chuyen bay
 INSERT INTO FLIGHT_SEAT (flight_id, seat_id, aircraft_id, status)
 SELECT 
     f.flight_id,
@@ -147,9 +133,7 @@ INNER JOIN AIRCRAFT_SEAT s ON f.aircraft_id = s.aircraft_id
 ORDER BY f.flight_id, s.seat_id;
 GO
 
--- =====================================================================================
-PRINT '>>> BUOC 5: INSERT KHACH HANG (CUSTOMER)';
--- =====================================================================================
+-- 8. them khach hang
 INSERT INTO CUSTOMER (first_name, last_name, email, phone) VALUES
 ('Vinh', 'Nguyen Quang', 'quangvinh@gmail.com', '0901234567'),
 ('An', 'Tran Binh', 'an.tran@yahoo.com', '0912345678'),
@@ -158,13 +142,8 @@ INSERT INTO CUSTOMER (first_name, last_name, email, phone) VALUES
 ('Mai', 'Hoang Thanh', 'mai.hoang@company.vn', '0977112233');
 GO
 
--- =====================================================================================
-PRINT '>>> BUOC 6: TAO CAC KICH BAN THU NGHIEM (TEST SCENARIOS)';
--- =====================================================================================
-
--- -------------------------------------------------------------------------------------
--- KICH BAN 1: DAT VE & THANH TOAN THANH CONG -> DA XUAT VE IATA (TICKET ISSUED)
--- -------------------------------------------------------------------------------------
+-- 9. du lieu mau de test:
+-- test case 1: don da thanh toan xong va da xuat ve (ghe 12A va 12B tren chuyen 1)
 DECLARE @cust_id1 INT, @fl_id1 INT, @bk_id1 INT;
 SELECT @cust_id1 = customer_id FROM CUSTOMER WHERE email = 'quangvinh@gmail.com';
 SET @fl_id1 = 1;
@@ -203,10 +182,7 @@ VALUES
 (@res_id1, '738-2401889901', DATEADD(MINUTE, -25, GETDATE()), 'Issued'),
 (@res_id2, '738-2401889902', DATEADD(MINUTE, -25, GETDATE()), 'Issued');
 
-
--- -------------------------------------------------------------------------------------
--- KICH BAN 2: DANG GIU CHO THOI GIAN THUC (ACTIVE HOLD < 10 PHUT)
--- -------------------------------------------------------------------------------------
+-- test case 2: don dang giu cho trong 10 phut chua het han (ghe 1A chuyen 1)
 DECLARE @cust_id2 INT, @bk_id2 INT, @fs_id_1A INT;
 SELECT @cust_id2 = customer_id FROM CUSTOMER WHERE email = 'an.tran@yahoo.com';
 
@@ -224,10 +200,7 @@ VALUES (@bk_id2, @fs_id_1A, 'Tran Binh An', '079201004567', 4500000.00, 'Held');
 
 UPDATE FLIGHT_SEAT SET status = 'On Hold' WHERE flight_seat_id = @fs_id_1A;
 
-
--- -------------------------------------------------------------------------------------
--- KICH BAN 3: "CO TINH BO QUEN GIO HANG" (> 10 PHUT CHUA THANH TOAN)
--- -------------------------------------------------------------------------------------
+-- test case 3: don qua 10 phut chua tra tien de test sp tu dong huy (ghe 18D, 18E chuyen 1)
 DECLARE @cust_id3 INT, @bk_id3 INT, @fs_id_18D INT, @fs_id_18E INT;
 SELECT @cust_id3 = customer_id FROM CUSTOMER WHERE email = 'linh.pham@outlook.com';
 
@@ -252,10 +225,7 @@ VALUES
 
 UPDATE FLIGHT_SEAT SET status = 'On Hold' WHERE flight_seat_id IN (@fs_id_18D, @fs_id_18E);
 
-
--- -------------------------------------------------------------------------------------
--- KICH BAN 4: THANH TOAN THAT BAI NHIEU LAN ROI MOI THANH CONG
--- -------------------------------------------------------------------------------------
+-- test case 4: thanh toan that bai truoc khi thanh cong de the hien quan he 1-n (ghe 15A chuyen 2)
 DECLARE @cust_id4 INT, @fl_id2 INT, @bk_id4 INT, @fs_id_15A INT;
 SELECT @cust_id4 = customer_id FROM CUSTOMER WHERE email = 'cuong.le@gmail.com';
 SET @fl_id2 = 2;
@@ -286,10 +256,9 @@ SELECT @res_id4 = reservation_id FROM SEAT_RESERVATION WHERE booking_id = @bk_id
 INSERT INTO TICKET (reservation_id, ticket_number, issued_at, status)
 VALUES (@res_id4, '738-2401889903', DATEADD(MINUTE, -5, GETDATE()), 'Issued');
 
-
--- -------------------------------------------------------------------------------------
--- KICH BAN 5: CHUAN BI DU LIEU CHO BAI TOAN "TIM 3 GHE KE NHAU"
--- -------------------------------------------------------------------------------------
+-- test case 5: set mot so ghe de thanh vien 4 viet query tim 3 ghe lien tiep
+-- hang 20 de trong 20A 20B 20C (cung day trai)
+-- hang 21 de trong 21B 21C 21D nhung bi ngan boi loi di giua C va D
 UPDATE fs
 SET fs.status = 'Booked'
 FROM FLIGHT_SEAT fs
@@ -297,11 +266,9 @@ JOIN AIRCRAFT_SEAT s ON fs.seat_id = s.seat_id
 WHERE fs.flight_id = 1 AND s.seat_number IN ('21A', '21E', '21F');
 GO
 
--- =====================================================================================
-PRINT '>>> BUOC 7: TAO STORED PROCEDURES TU DONG HOA (AUTOMATION)';
--- =====================================================================================
+-- 10. cac thu tuc xu ly nghiep vu
+-- sp tu dong quet va huy cac don pending da qua 10 phut, tra ghe ve available
 GO
-
 CREATE OR ALTER PROCEDURE sp_AutoCancelExpiredBookings
 AS
 BEGIN
@@ -317,10 +284,7 @@ BEGIN
         WHERE status = 'Pending' 
           AND expiry_time < GETDATE();
 
-        DECLARE @Count INT;
-        SELECT @Count = COUNT(*) FROM @ExpiredBookings;
-
-        IF @Count > 0
+        IF EXISTS (SELECT 1 FROM @ExpiredBookings)
         BEGIN
             UPDATE fs
             SET fs.status = 'Available'
@@ -339,12 +303,6 @@ BEGIN
             SET b.status = 'Cancelled'
             FROM BOOKING b
             INNER JOIN @ExpiredBookings eb ON b.booking_id = eb.booking_id;
-
-            PRINT 'Da huy thanh cong ' + CAST(@Count AS VARCHAR(10)) + ' don dat cho qua han 10 phut va tra lai ghe trong.';
-        END
-        ELSE
-        BEGIN
-            PRINT 'Khong co don hang nao bi qua han.';
         END
 
         COMMIT TRANSACTION;
@@ -356,6 +314,7 @@ BEGIN
 END;
 GO
 
+-- sp tao don giu cho tam thoi 10 phut
 CREATE OR ALTER PROCEDURE sp_CreateBooking
     @customer_id INT,
     @flight_id INT,
@@ -404,7 +363,6 @@ BEGIN
         UPDATE FLIGHT_SEAT SET status = 'On Hold' WHERE flight_seat_id = @flight_seat_id;
 
         COMMIT TRANSACTION;
-        PRINT 'Tao don dat cho #' + CAST(@new_booking_id AS VARCHAR(10)) + ' thanh cong! Han thanh toan 10 phut.';
     END TRY
     BEGIN CATCH
         IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
@@ -413,6 +371,7 @@ BEGIN
 END;
 GO
 
+-- sp nhan thanh toan va xuat ve dien tu
 CREATE OR ALTER PROCEDURE sp_ProcessPaymentAndIssueTicket
     @booking_id INT,
     @transaction_code VARCHAR(50),
@@ -475,28 +434,10 @@ BEGIN
         WHERE sr.booking_id = @booking_id;
 
         COMMIT TRANSACTION;
-        PRINT 'Thanh toan thanh cong va da xuat ve dien tu IATA cho don hang #' + CAST(@booking_id AS VARCHAR(10));
     END TRY
     BEGIN CATCH
         IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
         THROW;
     END CATCH
 END;
-GO
-
-PRINT '=====================================================================================';
-PRINT 'HOAN TAT BOM DU LIEU & TU DONG HOA! TONG HOP TRANG THAI CAC BANG:';
-SELECT 'AIRPORT' AS TableName, COUNT(*) AS TotalRows FROM AIRPORT
-UNION ALL SELECT 'AIRCRAFT', COUNT(*) FROM AIRCRAFT
-UNION ALL SELECT 'SEAT_CLASS', COUNT(*) FROM SEAT_CLASS
-UNION ALL SELECT 'ROUTE', COUNT(*) FROM ROUTE
-UNION ALL SELECT 'AIRCRAFT_SEAT', COUNT(*) FROM AIRCRAFT_SEAT
-UNION ALL SELECT 'FLIGHT', COUNT(*) FROM FLIGHT
-UNION ALL SELECT 'FLIGHT_CLASS_FARE', COUNT(*) FROM FLIGHT_CLASS_FARE
-UNION ALL SELECT 'FLIGHT_SEAT', COUNT(*) FROM FLIGHT_SEAT
-UNION ALL SELECT 'CUSTOMER', COUNT(*) FROM CUSTOMER
-UNION ALL SELECT 'BOOKING', COUNT(*) FROM BOOKING
-UNION ALL SELECT 'SEAT_RESERVATION', COUNT(*) FROM SEAT_RESERVATION
-UNION ALL SELECT 'PAYMENT', COUNT(*) FROM PAYMENT
-UNION ALL SELECT 'TICKET', COUNT(*) FROM TICKET;
 GO
