@@ -6,9 +6,10 @@ Hệ thống Cơ sở dữ liệu Quản lý Đặt vé và Giữ chỗ Chuyến
 
 ## 📁 Tài nguyên trong Repository
 
-- **[project.sql](project.sql)**: Kịch bản DDL/DML khởi tạo cơ sở dữ liệu `AirlineBooking`, cấu trúc 12 bảng và các ràng buộc khóa chính/ngoại.
-- **[Chen_ERD.jpg](Chen_ERD.jpg)**: Sơ đồ Thực thể - Mối quan hệ mức khái niệm (Conceptual ERD) theo ký pháp Peter Chen.
-- **[Relational_Schema.jpg](Relational_Schema.jpg)**: Lược đồ Cơ sở dữ liệu quan hệ mức vật lý (Physical Relational Schema / Data Model).
+- **[project.sql](project.sql)**: Kịch bản DDL/DML khởi tạo cơ sở dữ liệu `AirlineBooking`, cấu trúc 12 bảng và các ràng buộc khóa chính/ngoại (Thành viên 2).
+- **[insert_data.sql](insert_data.sql)**: Kịch bản bơm dữ liệu mẫu thực tế, các kịch bản thử nghiệm đặc thù và 3 Stored Procedures tự động hóa giữ chỗ/hủy vé 10 phút (Thành viên 3).
+- **[Chen_ERD.jpg](Chen_ERD.jpg)**: Sơ đồ Thực thể - Mối quan hệ mức khái niệm (Conceptual ERD) theo ký pháp Peter Chen (Thành viên 1).
+- **[Relational_Schema.jpg](Relational_Schema.jpg)**: Lược đồ Cơ sở dữ liệu quan hệ mức vật lý (Physical Relational Schema / Data Model) (Thành viên 1 & 2).
 
 ---
 
