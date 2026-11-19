@@ -178,54 +178,56 @@ WHERE b.status = 'Pending'
   AND b.expiry_time < '2026-11-20 07:15:00'; -- Giả lập thời điểm hiện tại của hệ thống
 GO
 
--- Câu 9: Thuật toán tìm 3 ghế trống nằm kề nhau trên cùng một dãy ghế (Không bị ngăn cách bởi lối đi)
+-- Câu 9: Tìm 3 ghế trống nằm kề nhau trên cùng một dãy ghế (Không bị ngăn cách bởi lối đi cabin)
 -- Ý nghĩa: Giải quyết bài toán nhóm/gia đình muốn ngồi liền nhau (Rule 4 trong README).
--- Phải thỏa mãn: cùng chuyến, cùng hàng (row), cùng dãy (block_code: LEFT hoặc RIGHT),
--- cột liên tiếp (ví dụ A-B-C hoặc D-E-F) và tất cả đều 'Available'.
-WITH AvailableSeats AS (
-    SELECT 
-        fs.flight_seat_id,
-        fs.flight_id,
-        aseat.row_number,
-        aseat.block_code,
-        aseat.column_code,
-        aseat.seat_number,
-        -- Đổi mã cột sang số thứ tự để kiểm tra tính liên tiếp: A->1, B->2, C->3, D->4, E->5, F->6
-        ASCII(aseat.column_code) - ASCII('A') + 1 AS col_num
-    FROM FLIGHT_SEAT fs
-    JOIN AIRCRAFT_SEAT aseat ON fs.seat_id = aseat.seat_id AND fs.aircraft_id = aseat.aircraft_id
-    WHERE fs.flight_id = 1
-      AND fs.status = 'Available'
-)
+-- Sử dụng Self-JOIN và Subquery cơ bản: cùng chuyến, cùng hàng (row), cùng dãy (block_code: LEFT hoặc RIGHT),
+-- cột liên tiếp (A-B-C trên dãy trái hoặc D-E-F trên dãy phải) và đều ở trạng thái 'Available'.
 SELECT 
     s1.row_number,
     s1.block_code,
     s1.seat_number AS seat_1,
     s2.seat_number AS seat_2,
     s3.seat_number AS seat_3
-FROM AvailableSeats s1
-JOIN AvailableSeats s2 
-    ON s1.row_number = s2.row_number 
+FROM 
+    (SELECT fs.flight_id, a.row_number, a.block_code, a.column_code, a.seat_number 
+     FROM FLIGHT_SEAT fs 
+     JOIN AIRCRAFT_SEAT a ON fs.seat_id = a.seat_id AND fs.aircraft_id = a.aircraft_id 
+     WHERE fs.status = 'Available') s1
+JOIN 
+    (SELECT fs.flight_id, a.row_number, a.block_code, a.column_code, a.seat_number 
+     FROM FLIGHT_SEAT fs 
+     JOIN AIRCRAFT_SEAT a ON fs.seat_id = a.seat_id AND fs.aircraft_id = a.aircraft_id 
+     WHERE fs.status = 'Available') s2 
+    ON s1.flight_id = s2.flight_id 
+   AND s1.row_number = s2.row_number 
    AND s1.block_code = s2.block_code 
-   AND s2.col_num = s1.col_num + 1
-JOIN AvailableSeats s3 
-    ON s2.row_number = s3.row_number 
+   AND ((s1.column_code = 'A' AND s2.column_code = 'B') OR (s1.column_code = 'D' AND s2.column_code = 'E'))
+JOIN 
+    (SELECT fs.flight_id, a.row_number, a.block_code, a.column_code, a.seat_number 
+     FROM FLIGHT_SEAT fs 
+     JOIN AIRCRAFT_SEAT a ON fs.seat_id = a.seat_id AND fs.aircraft_id = a.aircraft_id 
+     WHERE fs.status = 'Available') s3 
+    ON s2.flight_id = s3.flight_id 
+   AND s2.row_number = s3.row_number 
    AND s2.block_code = s3.block_code 
-   AND s3.col_num = s2.col_num + 1
+   AND ((s2.column_code = 'B' AND s3.column_code = 'C') OR (s2.column_code = 'E' AND s3.column_code = 'F'))
+WHERE s1.flight_id = 1
 ORDER BY s1.row_number, s1.seat_number;
 GO
 
--- Câu 10: Xếp hạng doanh số và số lần đặt chỗ của khách hàng bằng Window Function (DENSE_RANK)
--- Ý nghĩa: Truy vấn nâng cao sử dụng Window Function phân hạng khách hàng
+-- Câu 10: Tìm các hạng vé của các chuyến bay có giá vé cao hơn mức giá vé trung bình của toàn hệ thống
+-- Ý nghĩa: Phục vụ phân tích các phân khúc vé cao cấp (Sử dụng Subquery lồng nhau so sánh với hàm tổng hợp AVG)
 SELECT 
-    c.customer_id,
-    c.first_name + ' ' + c.last_name AS customer_name,
-    c.email,
-    COUNT(b.booking_id) AS total_orders,
-    ISNULL(SUM(p.amount), 0) AS total_spent_vnd,
-    DENSE_RANK() OVER (ORDER BY ISNULL(SUM(p.amount), 0) DESC) AS spending_rank
-FROM CUSTOMER c
-LEFT JOIN BOOKING b ON c.customer_id = b.customer_id
-LEFT JOIN PAYMENT p ON b.booking_id = p.booking_id AND p.status = 'Success'
-GROUP BY c.customer_id, c.first_name, c.last_name, c.email;
+    f.flight_code,
+    sc.class_name,
+    fcf.base_price,
+    fcf.currency
+FROM FLIGHT_CLASS_FARE fcf
+JOIN FLIGHT f ON fcf.flight_id = f.flight_id
+JOIN SEAT_CLASS sc ON fcf.class_id = sc.class_id
+WHERE fcf.base_price > (
+    SELECT AVG(base_price) 
+    FROM FLIGHT_CLASS_FARE
+)
+ORDER BY fcf.base_price DESC;
 GO

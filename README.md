@@ -134,6 +134,6 @@ Hệ thống truy vấn trong file [queries.sql](queries.sql) được thiết k
 6. **Báo cáo doanh thu**: Thống kê tổng doanh thu thực thu theo từng chuyến bay từ giao dịch thành công.
 7. **Lọc khách hàng VIP (HAVING)**: Tìm khách hàng có tổng chi tiêu $\ge$ 2,000,000 VND.
 8. **Quét đơn hết hạn 10 phút**: Phát hiện các đơn hàng quá hạn thanh toán cần giải phóng ghế.
-9. **Thuật toán tìm 3 ghế kề nhau**: Tìm 3 ghế trống liên tiếp cùng hàng, cùng dãy (không bị kẹt lối đi cabin).
-10. **Xếp hạng khách hàng (Window Function)**: Dùng `DENSE_RANK()` để xếp hạng chi tiêu của khách hàng.
+9. **Tìm 3 ghế kề nhau (Self-JOIN & Subquery)**: Tìm 3 ghế trống liên tiếp cùng hàng, cùng dãy (A-B-C hoặc D-E-F, không bị kẹt lối đi cabin).
+10. **Lọc vé cao hơn giá trung bình (Subquery lồng nhau)**: Dùng truy vấn con với hàm `AVG()` để tìm các hạng vé cao cấp trên mức giá trung bình của toàn hệ thống.
 
