@@ -6,8 +6,10 @@ Hệ thống Cơ sở dữ liệu Quản lý Đặt vé và Giữ chỗ Chuyến
 
 ## 📁 Tài nguyên trong Repository
 
-- **[project.sql](project.sql)**: Kịch bản DDL/DML khởi tạo cơ sở dữ liệu `AirlineBooking`, cấu trúc 12 bảng và các ràng buộc khóa chính/ngoại (Thành viên 2).
+- **[project.sql](project.sql)**: Kịch bản DDL/DML khởi tạo cơ sở dữ liệu `AirlineBooking`, cấu trúc 13 bảng và các ràng buộc khóa chính/ngoại (Thành viên 2).
 - **[insert_data.sql](insert_data.sql)**: Kịch bản nạp dữ liệu mẫu chuẩn giáo trình CSDL và Trigger tự động cập nhật trạng thái đặt vé theo Chapter 5 (Thành viên 3).
+- **[queries.sql](queries.sql)**: Bộ 10 câu truy vấn dữ liệu từ cơ bản đến nâng cao, thống kê doanh thu và logic giải quyết bài toán nghiệp vụ đặc thù (Thành viên 4).
+- **[normalization.md](normalization.md)**: Báo cáo phân tích chuẩn hóa toàn diện 1NF, 2NF, 3NF & BCNF cho 13 bảng, chứng minh phụ thuộc hàm (FDs) và loại trừ dị thường dữ liệu (Thành viên 1 & 4).
 - **[Chen_ERD.jpg](Chen_ERD.jpg)**: Sơ đồ Thực thể - Mối quan hệ mức khái niệm (Conceptual ERD) theo ký pháp Peter Chen (Thành viên 1).
 - **[Relational_Schema.jpg](Relational_Schema.jpg)**: Lược đồ Cơ sở dữ liệu quan hệ mức vật lý (Physical Relational Schema / Data Model) (Thành viên 1 & 2).
 
@@ -15,7 +17,7 @@ Hệ thống Cơ sở dữ liệu Quản lý Đặt vé và Giữ chỗ Chuyến
 
 ## 🗺️ PHẦN 1: CÂU CHUYỆN TOÀN CẢNH — "HÀNH TRÌNH TỪ TÌM CHUYẾN ĐẾN XUẤT VÉ"
 
-Để dễ quản lý, bảo trì và mở rộng, hệ thống 12 thực thể này được chia làm **3 khối nghiệp vụ chính**:
+Để dễ quản lý, bảo trì và mở rộng, hệ thống 13 thực thể này được chia làm **3 khối nghiệp vụ chính**:
 
 ```
 [Khối 1: Hạ tầng & Tàu bay] ───> [Khối 2: Chuyến bay & Mở bán] ───> [Khối 3: Đặt chỗ & Thanh toán]
@@ -118,3 +120,20 @@ Các quy tắc kỹ thuật mấu chốt đảm bảo tính toàn vẹn dữ li�
 - **Ý nghĩa:** Mỗi đơn đặt vé (1 transaction) là đặt chỗ cho 1 chặng bay cụ thể.
 - **Cách thể hiện:** Quan hệ `FLIGHT` (1) — `BOOKED_ON` — (N) `BOOKING` (`booking.flight_id`).
 - **Cơ chế:** Mọi `SEAT_RESERVATION` trong cùng một `BOOKING` đều tự động kế thừa và chỉ được phép trỏ tới các ghế thuộc đúng chuyến bay `flight_id` của đơn hàng đó.
+
+---
+
+## 🔍 PHẦN 4: HỆ THỐNG CÂU HỎI VÀ TRUY VẤN DỮ LIỆU (QUERIES)
+
+Hệ thống truy vấn trong file [queries.sql](queries.sql) được thiết kế từ cơ bản đến nâng cao:
+1. **Tìm kiếm chuyến bay**: Tìm các chuyến bay theo ngày và tuyến bay (HAN $\rightarrow$ SGN).
+2. **Xem bảng giá**: Hiển thị giá vé theo từng hạng ghế cho chuyến bay cụ thể.
+3. **Sơ đồ trạng thái ghế (Seat Map)**: Thể hiện vị trí ghế và tình trạng (Available, On Hold, Booked).
+4. **Xuất vé điện tử IATA**: Nối nhiều bảng để in Boarding Pass / Vé điện tử hoàn chỉnh.
+5. **Thống kê tỷ lệ lấp đầy (Occupancy Rate)**: Đếm ghế trống, đang giữ, đã bán và tính % lấp đầy.
+6. **Báo cáo doanh thu**: Thống kê tổng doanh thu thực thu theo từng chuyến bay từ giao dịch thành công.
+7. **Lọc khách hàng VIP (HAVING)**: Tìm khách hàng có tổng chi tiêu $\ge$ 2,000,000 VND.
+8. **Quét đơn hết hạn 10 phút**: Phát hiện các đơn hàng quá hạn thanh toán cần giải phóng ghế.
+9. **Thuật toán tìm 3 ghế kề nhau**: Tìm 3 ghế trống liên tiếp cùng hàng, cùng dãy (không bị kẹt lối đi cabin).
+10. **Xếp hạng khách hàng (Window Function)**: Dùng `DENSE_RANK()` để xếp hạng chi tiêu của khách hàng.
+
